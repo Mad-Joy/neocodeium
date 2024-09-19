@@ -106,7 +106,8 @@ end
 ---@param col col
 ---@return extmark_id
 local function show_inline(id, str, lnum, col)
-   return nvim_buf_set_extmark(0, ns, lnum, col, {
+   local cursor = vim.api.nvim_win_get_cursor(0) -- <madjoy> captures the cursor position </madjoy> --
+   return nvim_buf_set_extmark(0, ns, lnum + 1, col, { -- <madjoy> adds one to the `lnum` variable </madjoy> --
       id = id,
       virt_text_pos = "inline",
       virt_text = { { str, hlgroup } },
@@ -143,7 +144,7 @@ local function show_block(id, text, lnum)
       table.insert(block_lines, { { leading_tabs_to_spaces(line), hlgroup } })
    end
 
-   return nvim_buf_set_extmark(0, ns, lnum, 0, {
+   return nvim_buf_set_extmark(0, ns, lnum + 1, 0, { -- <madoy> adds one to the `lnum` variable </madjoy> --
       id = id,
       virt_lines = block_lines,
       undo_restore = false,
