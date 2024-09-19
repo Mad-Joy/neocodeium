@@ -109,7 +109,7 @@ local function show_inline(id, str, lnum, col)
    local cursor = vim.api.nvim_win_get_cursor(0) -- <madjoy> captures the cursor position </madjoy> --
    return nvim_buf_set_extmark(0, ns, lnum + 1, col, { -- <madjoy> adds one to the `lnum` variable </madjoy> --
       id = id,
-      virt_text_pos = "inline",
+      virt_text_win_col = cursor[2],
       virt_text = { { str, hlgroup } },
       undo_restore = false,
       strict = false,
