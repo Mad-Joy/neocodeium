@@ -105,11 +105,10 @@ end
 ---@param lnum lnum
 ---@param col col
 ---@return extmark_id
-local function show_inline(id, str, lnum, col)
-   local cursor = vim.api.nvim_win_get_cursor(0) -- <madjoy> captures the cursor position </madjoy> --
-   return nvim_buf_set_extmark(0, ns, lnum + 1, col, { -- <madjoy> adds one to the `lnum` variable </madjoy> --
+local function show_inline(id, str) -- <madjoy> Changed "lnum" and "col" to `vim.fn.line()` and `vim.fn.col()` --
+   return nvim_buf_set_extmark(0, ns, vim.fn.line("."), vim.fn.col(".") - 1, {
       id = id,
-      virt_text_win_col = cursor[2],
+      virt_text_win_col = vim.fn.virtcol(".") - 0, -- </madjoy> --
       virt_text = { { str, hlgroup } },
       undo_restore = false,
       strict = false,
@@ -137,14 +136,14 @@ end
 ---@param text string text to display, will be split into lines at "\n"
 ---@param lnum lnum
 ---@return extmark_id
-local function show_block(id, text, lnum)
+local function show_block(id, text)
    local block_lines = {}
    -- XXX: should it have {trimempty = true}?
    for line in vim.gsplit(text, "\n") do
       table.insert(block_lines, { { leading_tabs_to_spaces(line), hlgroup } })
    end
 
-   return nvim_buf_set_extmark(0, ns, lnum + 1, 0, { -- <madoy> adds one to the `lnum` variable </madjoy> --
+   return nvim_buf_set_extmark(0, ns, vim.fn.line(".") - 0, vim.fn.col(".") - 1, { -- <madoy> Changed "lnum" and "col" to `vim.fn.line()` and `vim.fn.col()` </madjoy> --
       id = id,
       virt_lines = block_lines,
       undo_restore = false,
@@ -238,7 +237,7 @@ function Completer:display_inline(contents)
          end
          self.inline[i].text = c.text
          self.inline[i].prefix = c.prefix
-         self.inline[i].id = show_inline(self.inline[i].id, c.text, c.lnum, c.col)
+         self.inline[i].id = show_inline(self.inline[i].id, c.text)
       end
    end
 end
@@ -250,7 +249,7 @@ function Completer:display_block(text, lnum)
    if text then
       if not self.block.id or self.block.text ~= text then
          self.block.text = text
-         self.block.id = show_block(self.block.id, text, lnum)
+         self.block.id = show_block(self.block.id, text)
       end
    else
       self:clear_block()
@@ -372,7 +371,7 @@ function Completer:update_forward_line()
          self.inline[1].text = self.block.text:sub(col + 1, index - 1)
          self.block.text = self.block.text:sub(index + 1)
          -- self.block.id already exists, no need to set it
-         show_block(self.block.id, self.block.text, lnum)
+         show_block(self.block.id, self.block.text)
       else
          self.inline[1].text = self.block.text:sub(col + 1)
          self:clear_block()
@@ -381,7 +380,7 @@ function Completer:update_forward_line()
             show_label(self.label.id, " 0 ", self.pos[1])
          end
       end
-      self.inline[1].id = show_inline(nil, self.inline[1].text, lnum, col)
+      self.inline[1].id = show_inline(nil, self.inline[1].text)
    end
    self:start_clear_timer()
 end
@@ -396,7 +395,7 @@ function Completer:update_backward_line()
       end
       self:clear_inline()
       -- self.block.id could be nil, so we need to set it
-      self.block.id = show_block(self.block.id, self.block.text, self.pos[1])
+      self.block.id = show_block(self.block.id, self.block.text)
    end
    self:start_clear_timer()
 end
@@ -416,7 +415,7 @@ function Completer:update_horz_move(prev_pos, new_fulltext)
       else
          local prefix = first_inline.text:sub(1, horz_move)
          self.inline[1].text = first_inline.text:sub(horz_move + 1)
-         show_inline(first_inline.id, first_inline.text, lnum, col)
+         show_inline(first_inline.id, first_inline.text)
          if new_fulltext:sub(prev_col) ~= prefix then
             self:start_clear_timer()
          end
@@ -427,7 +426,7 @@ function Completer:update_horz_move(prev_pos, new_fulltext)
       else
          local prefix = self.fulltext:sub(col + 1, col - horz_move)
          self.inline[1].text = prefix .. first_inline.text
-         show_inline(first_inline.id, first_inline.text, lnum, col)
+         show_inline(first_inline.id, first_inline.text)
          self.clear_timer:stop()
          self:start_clear_timer()
       end
