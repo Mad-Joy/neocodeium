@@ -105,10 +105,10 @@ end
 ---@param lnum lnum
 ---@param col col
 ---@return extmark_id
-local function show_inline(id, str) -- <madjoy> Changed "lnum" and "col" to `vim.fn.line()` and `vim.fn.col()` --
-   return nvim_buf_set_extmark(0, ns, vim.fn.line("."), vim.fn.col(".") - 1, {
+local function show_inline(id, str) -- <madjoy> Changed "lnum" and "col" to `vim.fn.line()` and `vim.fn.virtcol()` --
+   return nvim_buf_set_extmark(0, ns, vim.fn.line("."), vim.fn.virtcol("."), {
       id = id,
-      virt_text_win_col = vim.fn.virtcol(".") - 0, -- </madjoy> --
+      virt_text_win_col = vim.fn.virtcol(".") - 1, -- </madjoy> --
       virt_text = { { str, hlgroup } },
       undo_restore = false,
       strict = false,
@@ -143,7 +143,7 @@ local function show_block(id, text)
       table.insert(block_lines, { { leading_tabs_to_spaces(line), hlgroup } })
    end
 
-   return nvim_buf_set_extmark(0, ns, vim.fn.line(".") - 0, vim.fn.col(".") - 1, { -- <madoy> Changed "lnum" and "col" to `vim.fn.line()` and `vim.fn.col()` </madjoy> --
+   return nvim_buf_set_extmark(0, ns, vim.fn.line("."), vim.fn.virtcol(".") - 1, { -- <madoy> Changed "lnum" and "col" to `vim.fn.line()` and `vim.fn.col()` </madjoy> --
       id = id,
       virt_lines = block_lines,
       undo_restore = false,
