@@ -189,12 +189,14 @@ function Renderer:display_label(text)
    else
       if #state.inline == 1 and state.inline[1].text == "" and not state.block.text then
          text = " 0 "
+      elseif #state.data.items == 1 then
+         text = " 1 "
       else
          text = state.data.index .. "/" .. #state.data.items
       end
    end
 
-   if options.show_label and self.label.enabled then
+   if self.label.enabled then
       self.label.id = self:set_virt_label(text)
    end
    events.emit("NeoCodeiumLabelUpdated", text, true)
