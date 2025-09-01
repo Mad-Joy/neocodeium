@@ -8,6 +8,7 @@ local utils = require("neocodeium.utils")
 local fn = vim.fn
 local uv = vim.uv
 
+local mj_buf_set_extmark = require('floating-ghosts.floating_ghosts').mj_buf_set_extmark
 local nvim_buf_set_extmark = vim.api.nvim_buf_set_extmark
 local nvim_buf_del_extmark = vim.api.nvim_buf_del_extmark
 local nvim_buf_clear_namespace = vim.api.nvim_buf_clear_namespace
@@ -79,7 +80,7 @@ end
 ---@return extmark_id
 function Renderer:set_virt_inline(id, str, col, lnum)
    self.inline_virt_text[1][1] = tabs_to_spaces(str)
-   return nvim_buf_set_extmark(0, ns, lnum or state.pos[1], col, {
+   return mj_buf_set_extmark(0, ns, lnum or state.pos[1], col, {
       id = id,
       virt_text_pos = "inline",
       virt_text = self.inline_virt_text,
@@ -101,7 +102,7 @@ function Renderer:set_virt_block(text, lnum)
       and not utils.is_empty(state.inline[1].text)
    then
       state.block.visible = false
-      return nvim_buf_set_extmark(0, ns, lnum, 0, {
+      return mj_buf_set_extmark(0, ns, lnum, 0, {
          id = state.block.id,
          virt_text = self.single_line_virt_text,
          undo_restore = false,
@@ -114,7 +115,7 @@ function Renderer:set_virt_block(text, lnum)
          table.insert(block_lines, { { tabs_to_spaces(line), hlgroup } })
       end
 
-      return nvim_buf_set_extmark(0, ns, lnum, 0, {
+      return mj_buf_set_extmark(0, ns, lnum, 0, {
          id = state.block.id,
          virt_lines = block_lines,
          undo_restore = false,
