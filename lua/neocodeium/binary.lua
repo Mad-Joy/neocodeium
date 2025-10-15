@@ -165,15 +165,11 @@ function Bin:expand()
    return ok
 end
 
+---@return string
 function Bin:get_version()
    if options.bin and stdio.executable(options.bin) then
       local result = fn.systemlist({ options.bin, "--version" })
-      if #result > 0 and string.find(result[#result], "%d+%.%d+%.%d+") then
-         return result[#result]
-      else
-         log.error("Failed to get binary version, falling back to default", { type = log.BOTH })
-         return ""
-      end
+      return #result > 0 and result[#result] or "unknown"
    else
       return self.version
    end
