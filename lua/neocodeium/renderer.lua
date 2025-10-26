@@ -67,7 +67,7 @@ end
 ---@return extmark_id
 function Renderer:set_virt_label(text)
    self.label.virt_text[1][1] = text
-   return nvim_buf_set_extmark(0, ns, state.pos[1], 0, {
+   return vim.api.nvim_buf_set_extmark(0, ns, state.pos[1], 0, {
       id = self.label.id,
       virt_text = self.label.virt_text,
       virt_text_win_col = -1 - #text,
