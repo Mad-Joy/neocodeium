@@ -8,8 +8,12 @@ local utils = require("neocodeium.utils")
 local fn = vim.fn
 local uv = vim.uv
 
-local nvim_buf_set_extmark = vim.api.nvim_buf_set_extmark
-local nvim_buf_del_extmark = vim.api.nvim_buf_del_extmark
+local mj_buf_set_extmark = require('floating-ghosts.floating_ghosts').mj_buf_set_extmark
+local mj_buf_del_extmark = require('floating-ghosts.floating_ghosts').mj_buf_del_extmark
+local nvim_buf_set_extmark = mj_buf_set_extmark
+local nvim_buf_del_extmark = mj_buf_del_extmark
+-- local nvim_buf_set_extmark = vim.api.nvim_buf_set_extmark
+-- local nvim_buf_del_extmark = vim.api.nvim_buf_del_extmark
 local nvim_buf_clear_namespace = vim.api.nvim_buf_clear_namespace
 local nvim_get_current_line = vim.api.nvim_get_current_line
 
