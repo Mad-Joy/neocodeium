@@ -5,7 +5,6 @@ local events = require("neocodeium.events")
 local state = require("neocodeium.state")
 local utils = require("neocodeium.utils")
 
-local fn = vim.fn
 local uv = vim.uv
 
 local mj_buf_set_extmark = require('floating-ghosts.floating_ghosts').mj_buf_set_extmark
@@ -57,7 +56,8 @@ end
 ---@param str string
 ---@return string
 local function tabs_to_spaces(str)
-   local result = str:gsub("\t", string.rep(" ", fn.shiftwidth()))
+   local result =
+      str:gsub("\t", string.rep(" ", state.completion_request_data.editor_options.tab_size))
    return result
 end
 
@@ -82,7 +82,8 @@ end
 ---@param lnum? lnum
 ---@return extmark_id
 function Renderer:set_virt_inline(id, str, col, lnum)
-   self.inline_virt_text[1][1] = tabs_to_spaces(str)
+   self.inline_virt_text[1][1] = state.completion_request_data.editor_options.insert_spaces and str
+      or tabs_to_spaces(str)
    return nvim_buf_set_extmark(0, ns, lnum or state.pos[1], col, {
       id = id,
       virt_text_pos = "inline",
@@ -115,7 +116,10 @@ function Renderer:set_virt_block(text, lnum)
       state.block.visible = true
       local block_lines = {}
       for line in vim.gsplit(text, "\n") do
-         table.insert(block_lines, { { tabs_to_spaces(line), hlgroup } })
+         if not state.completion_request_data.editor_options.insert_spaces then
+            line = tabs_to_spaces(line)
+         end
+         table.insert(block_lines, { { line, hlgroup } })
       end
 
       return nvim_buf_set_extmark(0, ns, lnum, 0, {
