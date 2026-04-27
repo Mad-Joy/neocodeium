@@ -46,16 +46,6 @@ local function find_port_file(path)
    end, { path = path, type = "file" })[1]
 end
 
----@param t table list to append data
----@return fun(_, data?: string)
-local function data_appender(t)
-   return function(_, data)
-      if data then
-         t[#t + 1] = data
-      end
-   end
-end
-
 -- Server methods ------------------------------------------ {{{1
 
 ---Spawns a process for the server and sets Server.handle.
@@ -193,50 +183,75 @@ end
 ---Sends request to the server
 ---@param type request_type
 ---@param data table
----@param on_exit? fun(response: response)
+---@param on_exit? fun(response: string)
 function Server:request(type, data, on_exit)
-   ---@type url
-   local uri = "http://127.0.0.1:"
-      .. self.port
-      .. "/exa.language_server_pb.LanguageServerService/"
-      .. type
-   local cmd_args = { "-L", uri, "-H", "Content-Type: application/json", "-d@-" }
-   -- Because response from the server can be splitted into multiple chunks
-   -- we collecting them in this table
-   local response = { out = {}, err = {} }
-
-   -- Because requests are sent a lot do not assert return
-   -- value of new_pipe() for some speed gain. In theory this
-   -- shouldn't be a problem.
-   local stdin = uv.new_pipe() --[[@as uv.uv_pipe_t]]
-   local stdout = uv.new_pipe() --[[@as uv.uv_pipe_t]]
-   local stderr = uv.new_pipe() --[[@as uv.uv_pipe_t]]
-
-   local handle
-   handle = uv.spawn("curl", { ---@diagnostic disable-line: missing-fields
-      args = cmd_args,
-      stdio = { stdin, stdout, stderr },
-   }, function(_, _)
-      uv.close(stdin)
-      uv.close(stdout)
-      uv.close(stderr)
-      if on_exit then
-         on_exit(response)
-      end
-      if handle then
-         uv.close(handle)
-      end
-   end)
-
-   stdout:read_start(data_appender(response.out))
-   stderr:read_start(data_appender(response.err))
-
-   -- Write encoded data and close stdin
-   local ok, encoded_data = pcall(json.encode, data)
-   if ok and encoded_data then
-      uv.write(stdin, encoded_data)
+   if not self.port then
+      return
    end
-   uv.shutdown(stdin, function() end)
+
+   local port_number = tonumber(self.port)
+   if not port_number then
+      log.error("Failed to parse port number: " .. self.port)
+      return
+   end
+
+   local ok, body = pcall(json.encode, data)
+   if not ok then
+      log.error("Failed to encode request data: " .. tostring(body))
+      return
+   end
+
+   local header = table.concat({
+      "POST /exa.language_server_pb.LanguageServerService/" .. type .. " HTTP/1.1",
+      "Host: 127.0.0.1:" .. self.port,
+      "Content-Type: application/json",
+      "Content-Length: " .. #body,
+      "Connection: close",
+      "\r\n",
+   }, "\r\n")
+
+   local client, tcp_err = uv.new_tcp()
+   if not client then
+      log.error("Failed to create TCP client: " .. tcp_err)
+      return
+   end
+
+   client:connect("127.0.0.1", port_number, function(err)
+      if err then
+         client:close()
+         log.info("Failed to connect to the server: " .. err)
+         return
+      end
+
+      local _, write_err = client:write({ header, body })
+      if write_err then
+         client:close()
+         log.info("Sending request failed: " .. write_err)
+         return
+      end
+
+      local response_chunks = {}
+
+      client:read_start(function(read_err, chunk)
+         if read_err then
+            log.info("Invalid response from the server:\n" .. read_err)
+            client:close()
+         elseif chunk then
+            if on_exit then
+               table.insert(response_chunks, chunk)
+            end
+         else -- EOF
+            client:close()
+            if on_exit then
+               local response = table.concat(response_chunks)
+               local header_end = response:find("\r\n\r\n", 1, true)
+               if header_end then
+                  on_exit(response:match("{.*}", header_end + 4))
+               end
+            end
+         end
+      end)
+   end)
 end
 
 ---Attempts to find server port and then after finding one
