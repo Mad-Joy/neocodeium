@@ -13,8 +13,6 @@ local nvim_get_autocmds = vim.api.nvim_get_autocmds
 -- Auxiliary functions ------------------------------------- {{{1
 
 local augroup = vim.api.nvim_create_augroup("neocodeium", {})
-local other_docs_timer = assert(uv.new_timer())
-local pummenu_timer = assert(uv.new_timer())
 
 ---@param events string|table
 ---@param opts table
@@ -63,6 +61,8 @@ local function enable_autocmds()
    local options = require("neocodeium.options").options
    local events = require("neocodeium.events")
    local STATUS = require("neocodeium.enums").STATUS
+   local other_docs_timer = assert(uv.new_timer())
+   local pummenu_timer = assert(uv.new_timer())
 
    local function set_allowed_encoding()
       local buffers = options.disable_in_special_buftypes and utils.normal_bufs()
@@ -139,7 +139,7 @@ local function enable_autocmds()
       })
 
       create_autocmd("OptionSet", {
-         pattern = "number,relativenumber",
+         pattern = { "number", "relativenumber" },
          callback = function()
             renderer.label.enabled = nu_or_rnu()
          end,
@@ -147,7 +147,7 @@ local function enable_autocmds()
    end
 
    create_autocmd("OptionSet", {
-      pattern = "shiftwidth,expandtab",
+      pattern = { "shiftwidth", "expandtab" },
       callback = function(ev)
          if ev.buf == nvim_get_current_buf() then
             state:update_editor_options()
@@ -272,7 +272,19 @@ end
 
 local M = {}
 
+local already_setup = false
+
+---@param opts Options
 function M.setup(opts)
+   if already_setup then
+      local log = require("neocodeium.log")
+      log.warn(
+         "setup() called more than once (check your config for duplication)",
+         { type = log.ECHO }
+      )
+      return
+   end
+
    require("neocodeium.options").setup(opts)
 
    local options = require("neocodeium.options").options
@@ -344,6 +356,8 @@ function M.setup(opts)
 
       return state:get_status(), server_status
    end
+
+   already_setup = true
 end
 
 function M.accept()
